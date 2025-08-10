@@ -7,7 +7,7 @@ function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [movies, setMovies] = useState([]);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadPopularMovies = async () => {
@@ -15,42 +15,58 @@ function Home() {
         const popularMovies = await getPopularMovies();
         setMovies(popularMovies);
       } catch (err) {
-        console.log(err);
-        setError("Failed to load the movies, try again later.......");
+        console.error(err);
+        setError("Failed to load the movies, try again later.");
       } finally {
         setLoading(false);
       }
-    }
-      loadPopularMovies()
+    };
+    loadPopularMovies();
   }, []);
 
-  const handleSearch = async(e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
-    if(!searchQuery.trim()) return 
-    if(loading) return
-    setLoading(true)
-    try{
-      const searchResults =  await searchMovies(searchQuery)
-      setMovies(searchResults)
-      setError(null)
-    }catch(err){
-      console.log(err)
-      setError("Failed to search movies...")
-    }finally{
-      setLoading(false)
+    if (!searchQuery.trim()) {
+      // If search is empty, reload popular movies
+      setLoading(true);
+      try {
+        const popularMovies = await getPopularMovies();
+        setMovies(popularMovies);
+        setError(null);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load the movies, try again later.");
+      } finally {
+        setLoading(false);
+      }
+      return;
     }
 
-
-
-    
+    setLoading(true);
+    try {
+      const searchResults = await searchMovies(searchQuery);
+      setMovies(searchResults);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to search movies...");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const filteredMovies = movies.filter((movie) =>
+    searchQuery.trim()
+      ? movie.title.toLowerCase().includes(searchQuery.toLowerCase())
+      : true
+  );
 
   return (
     <div className="home">
       <form onSubmit={handleSearch} className="search-form">
         <input
           type="text"
-          placeholder="Search for movies here....."
+          placeholder="Search for movies here..."
           className="search-input"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -62,18 +78,15 @@ function Home() {
 
       {error && <div className="error-message">{error}</div>}
 
-
-      {loading ? <div className="loading">
-        loading.....
-      </div> : <div className="movies-grid">
-        {movies.map(
-          (movie) =>
-            movie.title.toLowerCase().startsWith(searchQuery) && (
-              <MovieCard movie={movie} key={movie.id} />
-            )
-        )}
-      </div>}
-      
+      {loading ? (
+        <div className="loading">Loading...</div>
+      ) : (
+        <div className="movies-grid">
+          {filteredMovies.map((movie) => (
+            <MovieCard movie={movie} key={movie.id} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
